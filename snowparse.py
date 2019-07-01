@@ -13,6 +13,10 @@ def add_padding(data):
 def get_start_index(string, sub_str='cx":"', fr=0):
     return string.find(sub_str, fr)
 
+def get_schema_match(string):
+    match = re.search(r'iglu:com.dubizzle\\*/([-A-Za-z0-9_]*)\\*/jsonschema', string)
+    return match.group(1) if match else None
+
 def parse():
     counts=Counter()
     schemas=Counter()
@@ -46,16 +50,23 @@ def parse():
                     #print("B64DeCODEd\n", byte_sub_str)
                     py_sub_str=str(byte_sub_str, 'utf-8', 'ignore')
                     #print("PY_STR\n", py_sub_str)
-                    match = re.search(r'iglu:com.dubizzle/(.*)/jsonschema', py_sub_str)
+                    match = get_schema_match(py_sub_str)
                     if match:
-                        schemas.update({match.group(1):1})
+                        schemas.update({match:1})
                         counts.update({'good':1})
                     else:
                         counts.update({'bad':1})
+                        #print("No schema found")
                         sys.stderr.write(line)
                 else:
-                    counts.update({'bad':1})
-                    sys.stderr.write(line)
+                    match = get_schema_match(py_str)
+                    if match:
+                        schemas.update({match:1})
+                        counts.update({'good':1})
+                    else:
+                        counts.update({'bad':1})
+                        #print("No second schema found")
+                        sys.stderr.write(line)
 
         except KeyError as k:
             counts.update({'key':1})
